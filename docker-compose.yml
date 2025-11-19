@@ -1,0 +1,55 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: retail360-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./ollama:/root/.ollama
+    networks:
+      - retail360-network
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: retail360-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/data
+    environment:
+      - EXCEL_PATH=/data/dataset.xlsx
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_MODEL=llama3
+      - EMBEDDING_MODEL=llama3
+      - SERVER_PORT=8000
+      - VECTORSTORE_PATH=/data/vectorstore
+    depends_on:
+      ollama:
+        condition: service_healthy
+    networks:
+      - retail360-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: retail360-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - retail360-network
+    restart: unless-stopped
+
+networks:
+  retail360-network:
+    driver: bridge
