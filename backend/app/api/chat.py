@@ -28,15 +28,12 @@ async def chat(request: ChatRequest):
         result = query_rag(
             question=request.question,
             chain=app_state['chain'],
-            retriever=app_state['retriever'],
-            history=[msg.dict() for msg in request.history]
+            retriever=app_state['retriever']
         )
         
-        sources = [Source(**source) for source in result['sources']]
         
         response = ChatResponse(
             answer=result['answer'],
-            sources=sources
         )
         
         # Log total request time

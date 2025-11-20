@@ -1,10 +1,12 @@
 from pydantic import BaseModel
-from typing import Literal
+from typing import Literal, List, Optional
+from datetime import datetime
 
 
 class ChatMessage(BaseModel):
     role: Literal["user", "assistant"]
     content: str
+    ts: Optional[datetime] = None
 
 
 class ChatRequest(BaseModel):
@@ -20,10 +22,35 @@ class Source(BaseModel):
 
 class ChatResponse(BaseModel):
     answer: str
-    sources: list[Source] = []
 
 
 class HealthResponse(BaseModel):
     status: str
     vectorstore_loaded: bool = False
     ollama_available: bool = False
+
+
+class ChatCreateRequest(BaseModel):
+    user_id: str
+    first_message: Optional[str] = None
+
+
+class ChatSummary(BaseModel):
+    id: str
+    title: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class ChatDetail(BaseModel):
+    id: str
+    user_id: str
+    title: str
+    messages: List[ChatMessage]
+    created_at: datetime
+    updated_at: datetime
+
+
+class ChatMessageAddRequest(BaseModel):
+    user_id: str
+    question: str

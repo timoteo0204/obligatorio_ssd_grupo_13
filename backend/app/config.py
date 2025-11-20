@@ -6,9 +6,10 @@ class Settings(BaseSettings):
     excel_path: str = "/data/dataset.xlsx"
     ollama_base_url: str = "http://ollama:11434"
     ollama_model: str = "llama3"
-    embedding_model: str = "llama3"
+    embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     server_port: int = 8000
     vectorstore_path: str = "/data/vectorstore"
+    mongo_uri: str = "mongodb://mongodb:27017/retail360"
     
     class Config:
         env_file = ".env"

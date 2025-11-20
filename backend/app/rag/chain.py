@@ -1,9 +1,8 @@
 from langchain.vectorstores import FAISS
 from langchain.prompts import ChatPromptTemplate
-from langchain.schema.runnable import RunnablePassthrough
 from langchain.schema.output_parser import StrOutputParser
 from langchain_community.llms import Ollama
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 import logging
 
 logger = logging.getLogger(__name__)
@@ -21,9 +20,13 @@ def get_ollama_llm(base_url: str, model: str) -> Ollama:
     return llm
 
 
+def format_docs(docs: List[Any]) -> str:
+    return "\n\n".join(doc.page_content for doc in docs)
+
+
 def get_rag_chain(vectorstore: FAISS, llm: Ollama):
     """
-    Construye la chain RAG completa.
+    Construye la chain RAG para recibir contexto explícito.
     """
     logger.info("Building RAG chain...")
     
@@ -31,7 +34,6 @@ def get_rag_chain(vectorstore: FAISS, llm: Ollama):
     logger.info("Creating retriever with k=5 similarity search...")
     retriever = vectorstore.as_retriever(
         search_type="similarity",
-        search_kwargs={"k": 5}
     )
     logger.info("Retriever created successfully")
     
@@ -59,8 +61,7 @@ RESPUESTA:"""
     # Construir chain
     logger.info("Assembling RAG chain components...")
     chain = (
-        {"context": retriever | format_docs, "question": RunnablePassthrough()}
-        | prompt
+        prompt
         | llm
         | StrOutputParser()
     )
@@ -72,12 +73,19 @@ RESPUESTA:"""
 def query_rag(
     question: str,
     chain,
-    retriever,
+    retriever: Optional[Any] = None,
     history: List[Dict[str, str]] = None
 ) -> Dict[str, Any]:
     """
     Ejecuta una consulta sobre el sistema RAG.
-    
+
+    Nota:
+        La `chain` construida por `get_rag_chain` ya incluye un retriever interno
+        que usa la pregunta como entrada para recuperar documentos y formar el
+        contexto del prompt. El parámetro `retriever` aquí es opcional y se usa
+        únicamente si necesitás devolver `sources` consistentes junto con la
+        respuesta. Si no se provee, se omiten las fuentes.
+
     Returns:
         Dict con 'answer' y 'sources'
     """
@@ -89,37 +97,30 @@ def query_rag(
         # Obtener documentos relevantes
         logger.info("Step 1: Retrieving relevant documents...")
         retrieval_start = time.time()
-        docs = retriever.get_relevant_documents(question)
+    
+        if retriever is not None:
+            docs = retriever.get_relevant_documents(question)
         retrieval_time = time.time() - retrieval_start
         logger.info(f"Step 1 completed: Retrieved {len(docs)} documents in {retrieval_time:.2f}s")
         
+
+        logger.info(f"Formatting documents for context...")
+        context_str = format_docs(docs) if docs else ""
+        logger.info("Context string formatted")
+
         # Ejecutar chain
         logger.info("Step 2: Invoking LLM chain...")
         chain_start = time.time()
-        answer = chain.invoke(question)
+        answer = chain.invoke({
+            "context": context_str,
+            "question": question
+        })
         chain_time = time.time() - chain_start
         logger.info(f"Step 2 completed: LLM chain invoked in {chain_time:.2f}s")
         
-        # Extraer sources de los documentos
-        logger.info("Step 3: Extracting sources from documents...")
-        sources_start = time.time()
-        sources = []
-        for doc in docs:
-            source = {
-                'id': doc.metadata.get('venta_id') or doc.metadata.get('cliente') or doc.metadata.get('producto'),
-                'type': doc.metadata.get('type'),
-                'metadata': doc.metadata
-            }
-            sources.append(source)
-        sources_time = time.time() - sources_start
-        logger.info(f"Step 3 completed: Extracted {len(sources)} sources in {sources_time:.2f}s")
-        
-        total_time = retrieval_time + chain_time + sources_time
-        logger.info(f"query_rag completed - Total: {total_time:.2f}s (Retrieval: {retrieval_time:.2f}s, LLM: {chain_time:.2f}s, Sources: {sources_time:.2f}s)")
-        
+
         return {
             'answer': answer.strip(),
-            'sources': sources
         }
         
     except Exception as e:

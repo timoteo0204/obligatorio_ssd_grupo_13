@@ -14,6 +14,17 @@ services:
       timeout: 10s
       retries: 5
 
+  mongodb:
+    image: mongo:6.0
+    container_name: retail360-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - retail360-network
+    restart: unless-stopped
+
   backend:
     build:
       context: ./backend
@@ -27,12 +38,15 @@ services:
       - EXCEL_PATH=/data/dataset.xlsx
       - OLLAMA_BASE_URL=http://ollama:11434
       - OLLAMA_MODEL=llama3
-      - EMBEDDING_MODEL=llama3
+      - EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
       - SERVER_PORT=8000
       - VECTORSTORE_PATH=/data/vectorstore
+      - MONGO_URI=mongodb://mongodb:27017/retail360
     depends_on:
       ollama:
         condition: service_healthy
+      mongodb:
+        condition: service_started
     networks:
       - retail360-network
     restart: unless-stopped
@@ -40,7 +54,6 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
     container_name: retail360-frontend
     ports:
       - "80:80"
@@ -53,3 +66,7 @@ services:
 networks:
   retail360-network:
     driver: bridge
+
+volumes:
+  mongo_data:
+    driver: local
