@@ -1,9 +1,8 @@
 from langchain.vectorstores import FAISS
 from langchain.prompts import ChatPromptTemplate
-from langchain.schema.runnable import RunnablePassthrough
 from langchain.schema.output_parser import StrOutputParser
 from langchain_community.llms import Ollama
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 import logging
 
 logger = logging.getLogger(__name__)
@@ -18,17 +17,20 @@ def get_ollama_llm(base_url: str, model: str) -> Ollama:
     )
 
 
+def format_docs(docs: List[Any]) -> str:
+    return "\n\n".join(doc.page_content for doc in docs)
+
+
 def get_rag_chain(vectorstore: FAISS, llm: Ollama):
     """
-    Construye la chain RAG completa.
+    Construye la chain RAG para recibir contexto explícito.
     """
-    # Crear retriever
+    # Crear retriever que será usado externamente para armar el contexto
     retriever = vectorstore.as_retriever(
         search_type="similarity",
-        search_kwargs={"k": 5}
     )
-    
-    # Prompt template
+
+    # Prompt template (requiere variables: context, question)
     template = """Sos un asistente que responde sobre un dataset de ventas de Retail 360.
 
 Usa EXCLUSIVAMENTE la información del siguiente CONTEXTO para responder la pregunta.
@@ -43,54 +45,52 @@ PREGUNTA: {question}
 RESPUESTA:"""
 
     prompt = ChatPromptTemplate.from_template(template)
-    
-    # Función para formatear documentos
-    def format_docs(docs):
-        return "\n\n".join(doc.page_content for doc in docs)
-    
-    # Construir chain
+
+    # La chain ahora solo formatea el prompt y ejecuta el LLM
     chain = (
-        {"context": retriever | format_docs, "question": RunnablePassthrough()}
-        | prompt
+        prompt
         | llm
         | StrOutputParser()
     )
-    
+
     return chain, retriever
 
 
 def query_rag(
     question: str,
     chain,
-    retriever,
+    retriever: Optional[Any] = None,
     history: List[Dict[str, str]] = None
 ) -> Dict[str, Any]:
     """
     Ejecuta una consulta sobre el sistema RAG.
-    
+
+    Nota:
+        La `chain` construida por `get_rag_chain` ya incluye un retriever interno
+        que usa la pregunta como entrada para recuperar documentos y formar el
+        contexto del prompt. El parámetro `retriever` aquí es opcional y se usa
+        únicamente si necesitás devolver `sources` consistentes junto con la
+        respuesta. Si no se provee, se omiten las fuentes.
+
     Returns:
         Dict con 'answer' y 'sources'
     """
     try:
-        # Obtener documentos relevantes
-        docs = retriever.get_relevant_documents(question)
-        
-        # Ejecutar chain
-        answer = chain.invoke(question)
-        
-        # Extraer sources de los documentos
-        sources = []
-        for doc in docs:
-            source = {
-                'id': doc.metadata.get('venta_id') or doc.metadata.get('cliente') or doc.metadata.get('producto'),
-                'type': doc.metadata.get('type'),
-                'metadata': doc.metadata
-            }
-            sources.append(source)
-        
+        # Recuperación explícita para construir el contexto
+        docs = []
+        if retriever is not None:
+            docs = retriever.get_relevant_documents(question)
+
+        context_str = format_docs(docs) if docs else ""
+
+        # Ejecutar chain con contexto y pregunta explícitos
+        answer = chain.invoke({
+            "context": context_str,
+            "question": question
+        })
+
         return {
             'answer': answer.strip(),
-            'sources': sources
         }
         
     except Exception as e:
