@@ -11,14 +11,20 @@ def dataframes_to_documents(dataframes: Dict[str, pd.DataFrame]) -> List[Documen
     Convierte los DataFrames en documentos de LangChain de forma simple.
     Cada fila del DataFrame se convierte en una línea de texto.
     """
+    import time
+    
+    logger.info("Starting dataframes to documents conversion...")
+    start_time = time.time()
     documents = []
     
     # Procesar cada DataFrame
     for sheet_name, df in dataframes.items():
         if df is None or df.empty:
+            logger.info(f"Skipping empty sheet: '{sheet_name}'")
             continue
             
-        logger.info(f"Procesando hoja '{sheet_name}' con {len(df)} filas")
+        logger.info(f"Processing sheet '{sheet_name}' with {len(df)} rows...")
+        sheet_start = time.time()
         
         # Convertir cada fila a texto simple
         for idx, row in df.iterrows():
@@ -37,7 +43,11 @@ def dataframes_to_documents(dataframes: Dict[str, pd.DataFrame]) -> List[Documen
                 }
                 
                 documents.append(Document(page_content=page_content, metadata=metadata))
+        
+        sheet_time = time.time() - sheet_start
+        logger.info(f"Sheet '{sheet_name}' processed in {sheet_time:.2f}s")
     
-    logger.info(f"Creados {len(documents)} documentos desde los DataFrames")
+    total_time = time.time() - start_time
+    logger.info(f"Document conversion completed: Created {len(documents)} documents in {total_time:.2f}s")
     
     return documents

@@ -23,14 +23,17 @@ class ExcelLoader:
         - Clientes: IdCliente, NombreCliente, Ciudad
         - Ventas: IdVenta, IdProducto, IdCliente, Cantidad, FechaVenta
         """
-        logger.info(f"Cargando Excel desde: {self.excel_path}")
+        import time
+        
+        logger.info(f"Starting Excel loading from: {self.excel_path}")
+        start_time = time.time()
         
         try:
             # Cargar las hojas
             excel_file = pd.ExcelFile(self.excel_path)
             
             # Identificar hojas disponibles
-            logger.info(f"Hojas disponibles: {excel_file.sheet_names}")
+            logger.info(f"Available sheets: {excel_file.sheet_names}")
             
             # Cargar hojas (buscar nombres en español e inglés)
             # Productos
@@ -68,14 +71,17 @@ class ExcelLoader:
                 self.ventas_df = pd.read_excel(excel_file, 0)
             
             # Procesar dataframes
+            logger.info("Processing dataframes...")
             self._process_productos()
             self._process_clientes()
             self._process_ventas()
             
             # Combinar las tablas mediante JOIN
+            logger.info("Joining tables...")
             self._join_tables()
             
-            logger.info(f"Excel cargado: {len(self.ventas_df)} ventas, "
+            total_time = time.time() - start_time
+            logger.info(f"Excel loading completed in {total_time:.2f}s: {len(self.ventas_df)} ventas, "
                        f"{len(self.clientes_df)} clientes, {len(self.productos_df)} productos")
             
             return {
