@@ -91,15 +91,12 @@ async def add_message(chat_id: str, req: ChatMessageAddRequest):
         raise HTTPException(status_code=404, detail="Chat no encontrado")
     now = datetime.utcnow()
     user_msg = ChatMessage(role="user", content=req.question, ts=now).dict()
-    history = [m for m in c.get("messages", []) if m["role"] == "user"]
     result = query_rag(
         question=req.question,
         chain=app_state['chain'],
         retriever=app_state['retriever'],
-        history=history
     )
     assistant_msg = ChatMessage(role="assistant", content=result['answer'], ts=datetime.utcnow()).dict()
     new_messages = c.get("messages", []) + [user_msg, assistant_msg]
     await db.chats.update_one({"_id": c["_id"]}, {"$set": {"messages": new_messages, "updated_at": datetime.utcnow(), "title": c.get("title") or req.question[:60]}})
-    sources = [Source(**s) for s in result['sources']]
-    return ChatResponse(answer=result['answer'], sources=sources)
+    return ChatResponse(answer=result['answer'])

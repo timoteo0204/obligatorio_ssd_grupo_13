@@ -16,17 +16,34 @@ class MyApp extends StatelessWidget {
       title: 'Retail 360 Chatbot',
       theme: ThemeData(
         brightness: Brightness.dark,
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0D9488), brightness: Brightness.dark).copyWith(
-          background: const Color(0xFF0F0F0F),
-          surface: const Color(0xFF1E1E1E),
-          primary: const Color(0xFF0D9488),
+        colorScheme:
+            ColorScheme.fromSeed(
+              seedColor: const Color(0xFF0D9488),
+              brightness: Brightness.dark,
+            ).copyWith(
+              background: const Color(0xFF0F0F0F),
+              surface: const Color(0xFF1E1E1E),
+              primary: const Color(0xFF0D9488),
+            ),
+        scaffoldBackgroundColor: const Color(
+          0xFF0F0F0F,
         ),
-        scaffoldBackgroundColor: const Color(0xFF0F0F0F),
         useMaterial3: true,
-        textTheme: Theme.of(context).textTheme.apply(bodyColor: Colors.grey[200], displayColor: Colors.grey[200]).copyWith(
-          titleLarge: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-          bodyLarge: const TextStyle(fontSize: 16, height: 1.4),
-        ),
+        textTheme: Theme.of(context).textTheme
+            .apply(
+              bodyColor: Colors.grey[200],
+              displayColor: Colors.grey[200],
+            )
+            .copyWith(
+              titleLarge: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+              ),
+              bodyLarge: const TextStyle(
+                fontSize: 16,
+                height: 1.4,
+              ),
+            ),
       ),
       home: const ChatApp(),
     );
@@ -247,253 +264,585 @@ class _ChatAppState extends State<ChatApp> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      final isMobile = constraints.maxWidth < 700;
-      final sidebar = Container(
-        width: 280,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF141414), Color(0xFF101010)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-          border: Border(right: BorderSide(color: Color(0xFF1F1F1F), width: 0.5)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 12, 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text('Conversaciones', style: Theme.of(context).textTheme.titleLarge),
-                    ),
-                    Tooltip(
-                      message: 'Nuevo chat',
-                      child: IconButton(
-                        onPressed: _newChat,
-                        icon: const Icon(Icons.add_circle_outline),
-                      ),
-                    ),
-                  ],
-                ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile =
+            constraints.maxWidth < 700;
+        final sidebar = Container(
+          width: 280,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFF141414),
+                Color(0xFF101010),
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+            border: Border(
+              right: BorderSide(
+                color: Color(0xFF1F1F1F),
+                width: 0.5,
               ),
             ),
-            if (_loadingChats)
-              const LinearProgressIndicator(minHeight: 2),
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                itemCount: _chats.length,
-                itemBuilder: (c, i) {
-                  final chat = _chats[i];
-                  final active = chat.id == _activeChatId;
-                  return InkWell(
-                    onTap: () => _loadChat(chat.id),
-                    borderRadius: BorderRadius.circular(10),
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
-                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                      decoration: BoxDecoration(
-                        color: active ? const Color(0xFF1E1E1E) : const Color(0xFF181818),
-                        borderRadius: BorderRadius.circular(10),
+          ),
+          child: Column(
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
+            children: [
+              SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding:
+                      const EdgeInsets.fromLTRB(
+                        16,
+                        16,
+                        12,
+                        8,
                       ),
-                      child: Row(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Conversaciones',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleLarge,
+                        ),
+                      ),
+                      Tooltip(
+                        message: 'Nuevo chat',
+                        child: IconButton(
+                          onPressed: _newChat,
+                          icon: const Icon(
+                            Icons
+                                .add_circle_outline,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (_loadingChats)
+                const LinearProgressIndicator(
+                  minHeight: 2,
+                ),
+              Expanded(
+                child: ListView.builder(
+                  padding:
+                      const EdgeInsets.symmetric(
+                        horizontal: 8,
+                      ),
+                  itemCount: _chats.length,
+                  itemBuilder: (c, i) {
+                    final chat = _chats[i];
+                    final active =
+                        chat.id == _activeChatId;
+                    return InkWell(
+                      onTap: () =>
+                          _loadChat(chat.id),
+                      borderRadius:
+                          BorderRadius.circular(
+                            10,
+                          ),
+                      child: Container(
+                        margin:
+                            const EdgeInsets.symmetric(
+                              vertical: 4,
+                              horizontal: 4,
+                            ),
+                        padding:
+                            const EdgeInsets.symmetric(
+                              vertical: 10,
+                              horizontal: 12,
+                            ),
+                        decoration: BoxDecoration(
+                          color: active
+                              ? const Color(
+                                  0xFF1E1E1E,
+                                )
+                              : const Color(
+                                  0xFF181818,
+                                ),
+                          borderRadius:
+                              BorderRadius.circular(
+                                10,
+                              ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons
+                                  .chat_bubble_outline,
+                              size: 18,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(
+                              width: 8,
+                            ),
+                            Expanded(
+                              child: Text(
+                                chat.title.isEmpty
+                                    ? 'Chat'
+                                    : chat.title,
+                                maxLines: 1,
+                                overflow:
+                                    TextOverflow
+                                        .ellipsis,
+                                style:
+                                    const TextStyle(
+                                      fontSize:
+                                          14,
+                                    ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(
+                  12.0,
+                ),
+                child: OutlinedButton.icon(
+                  onPressed: _fetchChats,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Refrescar'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Theme.of(
+                      context,
+                    ).colorScheme.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+        final chatArea = Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(
+                20,
+                14,
+                20,
+                12,
+              ),
+              decoration: const BoxDecoration(
+                color: Color(0xFF131313),
+                border: Border(
+                  bottom: BorderSide(
+                    color: Color(0xFF1F1F1F),
+                    width: 0.5,
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  if (isMobile)
+                    IconButton(
+                      icon: const Icon(
+                        Icons.menu,
+                      ),
+                      onPressed: () =>
+                          Scaffold.of(
+                            context,
+                          ).openDrawer(),
+                    ),
+                  const SizedBox(width: 4),
+                  const Text(
+                    'Chat Assistant',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Tu asistente conversacional',
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: _activeChatId == null
+                  ? const Center(
+                      child: Text(
+                        'Seleccioná o creá un chat',
+                      ),
+                    )
+                  : ListView.builder(
+                      padding:
+                          const EdgeInsets.fromLTRB(
+                            20,
+                            16,
+                            20,
+                            160,
+                          ),
+                      itemCount:
+                          _chatMessages[_activeChatId!]!
+                              .length,
+                      itemBuilder: (context, index) {
+                        final m =
+                            _chatMessages[_activeChatId!]![index];
+                        final isUser =
+                            m.role == 'user';
+                        return Container(
+                          margin:
+                              const EdgeInsets.only(
+                                bottom: 12,
+                              ),
+                          child: Row(
+                            crossAxisAlignment:
+                                CrossAxisAlignment
+                                    .start,
+                            mainAxisAlignment:
+                                isUser
+                                ? MainAxisAlignment
+                                      .end
+                                : MainAxisAlignment
+                                      .start,
+                            children: [
+                              if (!isUser)
+                                const CircleAvatar(
+                                  radius: 14,
+                                  child: Icon(
+                                    Icons
+                                        .smart_toy,
+                                    size: 16,
+                                  ),
+                                ),
+                              if (!isUser)
+                                const SizedBox(
+                                  width: 10,
+                                ),
+                              Flexible(
+                                child: Container(
+                                  padding:
+                                      const EdgeInsets.symmetric(
+                                        vertical:
+                                            10,
+                                        horizontal:
+                                            14,
+                                      ),
+                                  decoration: BoxDecoration(
+                                    color: isUser
+                                        ? const Color(
+                                            0xFF0D9488,
+                                          )
+                                        : const Color(
+                                            0xFF1F1F1F,
+                                          ),
+                                    borderRadius:
+                                        BorderRadius.circular(
+                                          16,
+                                        ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors
+                                            .black
+                                            .withOpacity(
+                                              0.3,
+                                            ),
+                                        blurRadius:
+                                            4,
+                                        offset:
+                                            const Offset(
+                                              0,
+                                              2,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment
+                                            .start,
+                                    children: [
+                                      Text(
+                                        m.content,
+                                        style: TextStyle(
+                                          color:
+                                              isUser
+                                              ? Colors.white
+                                              : Colors.grey[200],
+                                        ),
+                                      ),
+                                      if (m.sources !=
+                                              null &&
+                                          m
+                                              .sources!
+                                              .isNotEmpty) ...[
+                                        const SizedBox(
+                                          height:
+                                              8,
+                                        ),
+                                        const Text(
+                                          'Fuentes:',
+                                          style: TextStyle(
+                                            fontWeight:
+                                                FontWeight.bold,
+                                            fontSize:
+                                                12,
+                                          ),
+                                        ),
+                                        ...m.sources!.map(
+                                          (
+                                            s,
+                                          ) => Text(
+                                            '• ${s.type ?? 'N/A'}: ${s.id ?? 'N/A'}',
+                                            style: const TextStyle(
+                                              fontSize:
+                                                  12,
+                                              fontStyle:
+                                                  FontStyle.italic,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                      const SizedBox(
+                                        height: 4,
+                                      ),
+                                      Text(
+                                        DateTime.now()
+                                            .toLocal()
+                                            .toString()
+                                            .substring(
+                                              11,
+                                              16,
+                                            ),
+                                        style: const TextStyle(
+                                          color: Colors
+                                              .grey,
+                                          fontSize:
+                                              10,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              if (isUser)
+                                const SizedBox(
+                                  width: 10,
+                                ),
+                              if (isUser)
+                                const CircleAvatar(
+                                  radius: 14,
+                                  child: Icon(
+                                    Icons.person,
+                                    size: 16,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        );
+        return Scaffold(
+          drawer: isMobile
+              ? Drawer(child: sidebar)
+              : null,
+          body: Stack(
+            children: [
+              Row(
+                children: [
+                  if (!isMobile) sidebar,
+                  Expanded(child: chatArea),
+                ],
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  padding:
+                      const EdgeInsets.fromLTRB(
+                        20,
+                        12,
+                        20,
+                        20,
+                      ),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF121212),
+                    border: Border(
+                      top: BorderSide(
+                        color: Color(0xFF1F1F1F),
+                        width: 0.5,
+                      ),
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize:
+                        MainAxisSize.min,
+                    children: [
+                      Row(
+                        crossAxisAlignment:
+                            CrossAxisAlignment
+                                .end,
                         children: [
-                          const Icon(Icons.chat_bubble_outline, size: 18, color: Colors.grey),
-                          const SizedBox(width: 8),
                           Expanded(
-                            child: Text(
-                              chat.title.isEmpty ? 'Chat' : chat.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 14),
+                            child: ConstrainedBox(
+                              constraints:
+                                  const BoxConstraints(
+                                    maxHeight:
+                                        180,
+                                  ),
+                              child: Scrollbar(
+                                child: TextField(
+                                  controller:
+                                      _controller,
+                                  enabled:
+                                      !_sending &&
+                                      _activeChatId !=
+                                          null,
+                                  maxLines: null,
+                                  decoration: InputDecoration(
+                                    hintText:
+                                        _activeChatId ==
+                                            null
+                                        ? 'Crea un chat para comenzar'
+                                        : 'Escribe tu mensaje...',
+                                    filled: true,
+                                    fillColor:
+                                        const Color(
+                                          0xFF1A1A1A,
+                                        ),
+                                    contentPadding:
+                                        const EdgeInsets.symmetric(
+                                          vertical:
+                                              12,
+                                          horizontal:
+                                              14,
+                                        ),
+                                    border: OutlineInputBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(
+                                            14,
+                                          ),
+                                      borderSide: const BorderSide(
+                                        color: Color(
+                                          0xFF2A2A2A,
+                                        ),
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(
+                                            14,
+                                          ),
+                                      borderSide: const BorderSide(
+                                        color: Color(
+                                          0xFF2A2A2A,
+                                        ),
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(
+                                            14,
+                                          ),
+                                      borderSide: BorderSide(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        width:
+                                            1.4,
+                                      ),
+                                    ),
+                                  ),
+                                  onSubmitted: (_) =>
+                                      _sendMessage(),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(
+                            width: 12,
+                          ),
+                          SizedBox(
+                            height: 48,
+                            width: 48,
+                            child: ElevatedButton(
+                              onPressed:
+                                  (!_sending &&
+                                      _activeChatId !=
+                                          null)
+                                  ? _sendMessage
+                                  : null,
+                              style: ElevatedButton.styleFrom(
+                                padding:
+                                    EdgeInsets
+                                        .zero,
+                                backgroundColor:
+                                    Theme.of(
+                                          context,
+                                        )
+                                        .colorScheme
+                                        .primary,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius:
+                                      BorderRadius.circular(
+                                        14,
+                                      ),
+                                ),
+                              ),
+                              child: _sending
+                                  ? const Padding(
+                                      padding:
+                                          EdgeInsets.all(
+                                            8.0,
+                                          ),
+                                      child: CircularProgressIndicator(
+                                        strokeWidth:
+                                            2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation(
+                                              Colors.white,
+                                            ),
+                                      ),
+                                    )
+                                  : const Icon(
+                                      Icons
+                                          .send_rounded,
+                                    ),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: OutlinedButton.icon(
-                onPressed: _fetchChats,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Refrescar'),
-                style: OutlinedButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.primary),
-              ),
-            ),
-          ],
-        ),
-      );
-      final chatArea = Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 12),
-            decoration: const BoxDecoration(
-              color: Color(0xFF131313),
-              border: Border(bottom: BorderSide(color: Color(0xFF1F1F1F), width: 0.5)),
-            ),
-            child: Row(
-              children: [
-                if (isMobile)
-                  IconButton(
-                    icon: const Icon(Icons.menu),
-                    onPressed: () => Scaffold.of(context).openDrawer(),
-                  ),
-                const SizedBox(width: 4),
-                const Text('Chat Assistant', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Text('Tu asistente conversacional', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: _activeChatId == null
-                ? const Center(
-                    child: Text('Seleccioná o creá un chat'),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 160),
-                    itemCount: _chatMessages[_activeChatId!]!.length,
-                    itemBuilder: (context, index) {
-                      final m = _chatMessages[_activeChatId!]![index];
-                      final isUser = m.role == 'user';
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-                          children: [
-                            if (!isUser)
-                              const CircleAvatar(radius: 14, child: Icon(Icons.smart_toy, size: 16)),
-                            if (!isUser) const SizedBox(width: 10),
-                            Flexible(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
-                                decoration: BoxDecoration(
-                                  color: isUser ? const Color(0xFF0D9488) : const Color(0xFF1F1F1F),
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
-                                    BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 4, offset: const Offset(0, 2)),
-                                  ],
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(m.content, style: TextStyle(color: isUser ? Colors.white : Colors.grey[200])),
-                                    if (m.sources != null && m.sources!.isNotEmpty) ...[
-                                      const SizedBox(height: 8),
-                                      const Text('Fuentes:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                                      ...m.sources!.map((s) => Text('• ${s.type ?? 'N/A'}: ${s.id ?? 'N/A'}', style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic))),
-                                    ],
-                                    const SizedBox(height: 4),
-                                    Text(DateTime.now().toLocal().toString().substring(11, 16), style: const TextStyle(color: Colors.grey, fontSize: 10)),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            if (isUser) const SizedBox(width: 10),
-                            if (isUser)
-                              const CircleAvatar(radius: 14, child: Icon(Icons.person, size: 16)),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-          ),
-        ],
-      );
-      return Scaffold(
-        drawer: isMobile ? Drawer(child: sidebar) : null,
-        body: Stack(
-          children: [
-            Row(
-              children: [
-                if (!isMobile) sidebar,
-                Expanded(child: chatArea),
-              ],
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                decoration: const BoxDecoration(
-                  color: Color(0xFF121212),
-                  border: Border(top: BorderSide(color: Color(0xFF1F1F1F), width: 0.5)),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Expanded(
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxHeight: 180),
-                            child: Scrollbar(
-                              child: TextField(
-                                controller: _controller,
-                                enabled: !_sending && _activeChatId != null,
-                                maxLines: null,
-                                decoration: InputDecoration(
-                                  hintText: _activeChatId == null ? 'Crea un chat para comenzar' : 'Escribe tu mensaje...',
-                                  filled: true,
-                                  fillColor: const Color(0xFF1A1A1A),
-                                  contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF2A2A2A))),
-                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF2A2A2A))),
-                                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 1.4)),
-                                ),
-                                onSubmitted: (_) => _sendMessage(),
-                              ),
-                            ),
+                      const SizedBox(height: 6),
+                      const Align(
+                        alignment:
+                            Alignment.centerLeft,
+                        child: Text(
+                          'El modelo puede cometer errores. Verifica la información importante.',
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 11,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        SizedBox(
-                          height: 48,
-                          width: 48,
-                          child: ElevatedButton(
-                            onPressed: (!_sending && _activeChatId != null) ? _sendMessage : null,
-                            style: ElevatedButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              backgroundColor: Theme.of(context).colorScheme.primary,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                            ),
-                            child: _sending
-                                ? const Padding(
-                                    padding: EdgeInsets.all(8.0),
-                                    child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation(Colors.white)),
-                                  )
-                                : const Icon(Icons.send_rounded),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text('El modelo puede cometer errores. Verifica la información importante.', style: TextStyle(color: Colors.grey, fontSize: 11)),
-                    ),
-                    const SizedBox(height: 4),
-                  ],
+                      ),
+                      const SizedBox(height: 4),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-      );
-    });
+            ],
+          ),
+        );
+      },
+    );
   }
 }
