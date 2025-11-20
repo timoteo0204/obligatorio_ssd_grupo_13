@@ -11,7 +11,12 @@ router = APIRouter()
 @router.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     """Endpoint para hacer preguntas al chatbot."""
+    import time
     from app.main import app_state
+    
+    # Log incoming request
+    logger.info(f"Incoming chat request - Question: {request.question[:100]}...")
+    start_time = time.time()
     
     if not app_state.get('chain') or not app_state.get('retriever'):
         raise HTTPException(
@@ -27,9 +32,15 @@ async def chat(request: ChatRequest):
         )
         
         
-        return ChatResponse(
+        response = ChatResponse(
             answer=result['answer'],
         )
+        
+        # Log total request time
+        total_time = time.time() - start_time
+        logger.info(f"Chat request completed in {total_time:.2f}s")
+        
+        return response
         
     except Exception as e:
         logger.error(f"Error en chat endpoint: {e}")
