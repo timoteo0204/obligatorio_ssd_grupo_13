@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'dart:math';
+import 'dart:html' as html;
 
 void main() {
   runApp(const MyApp());
@@ -101,12 +102,12 @@ class _ChatAppState extends State<ChatApp> {
   final Map<String, List<Message>> _chatMessages =
       {};
   final List<ChatSummary> _chats = [];
+  String _activeModel = "";
   String? _activeChatId;
   bool _loadingChats = false;
   bool _sending = false;
-  final String _userId =
-      'user-' +
-      Random().nextInt(999999).toString();
+  final String _userId = 'user-fixed';
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   String get apiUrl =>
       const String.fromEnvironment(
@@ -117,6 +118,7 @@ class _ChatAppState extends State<ChatApp> {
   @override
   void initState() {
     super.initState();
+    _fetchModel();
     _fetchChats();
   }
 
@@ -148,8 +150,11 @@ class _ChatAppState extends State<ChatApp> {
   }
 
   Future<void> _loadChat(String chatId) async {
-    setState(() => _activeChatId = chatId);
-    if (_chatMessages[chatId] != null) return;
+    setState(() {
+      _activeChatId = chatId;
+      _chatMessages.putIfAbsent(chatId, () => []);
+    });
+    if (_chatMessages[chatId]!.isNotEmpty) return;
     try {
       final resp = await http.get(
         Uri.parse('$apiUrl/api/chats/$chatId'),
@@ -167,6 +172,7 @@ class _ChatAppState extends State<ChatApp> {
         setState(
           () => _chatMessages[chatId] = msgs,
         );
+        _updateChatTitleIfNeeded(chatId);
       }
     } catch (_) {}
   }
@@ -196,6 +202,35 @@ class _ChatAppState extends State<ChatApp> {
         });
       }
     } catch (_) {}
+  }
+
+  void _updateChatTitleIfNeeded(String chatId) {
+    final chatIdx = _chats.indexWhere(
+      (c) => c.id == chatId,
+    );
+    if (chatIdx == -1) return;
+    final msgs = _chatMessages[chatId];
+    if (msgs == null || msgs.isEmpty) return;
+    final firstUser = msgs
+        .firstWhere(
+          (m) => m.role == 'user',
+          orElse: () =>
+              Message(role: 'user', content: ''),
+        )
+        .content
+        .trim();
+    if (firstUser.isEmpty) return;
+    final truncated = firstUser.length > 50
+        ? firstUser.substring(0, 47) + '...'
+        : firstUser;
+    if (_chats[chatIdx].title != truncated) {
+      setState(
+        () => _chats[chatIdx] = ChatSummary(
+          id: chatId,
+          title: truncated,
+        ),
+      );
+    }
   }
 
   Future<void> _sendMessage() async {
@@ -260,6 +295,7 @@ class _ChatAppState extends State<ChatApp> {
     } finally {
       setState(() => _sending = false);
     }
+    _updateChatTitleIfNeeded(_activeChatId!);
   }
 
   @override
@@ -447,23 +483,20 @@ class _ChatAppState extends State<ChatApp> {
                       icon: const Icon(
                         Icons.menu,
                       ),
-                      onPressed: () =>
-                          Scaffold.of(
-                            context,
-                          ).openDrawer(),
+                      onPressed: () => _scaffoldKey.currentState?.openDrawer(),
                     ),
                   const SizedBox(width: 4),
                   const Text(
-                    'Chat Assistant',
+                    'Retail 360',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Tu asistente conversacional',
+                      _activeModel,
                       style: TextStyle(
                         color: Colors.grey,
                         fontSize: 12,
@@ -651,7 +684,7 @@ class _ChatAppState extends State<ChatApp> {
             ),
           ],
         );
-        return Scaffold(
+        return Scaffold(key: _scaffoldKey,
           drawer: isMobile
               ? Drawer(child: sidebar)
               : null,
@@ -664,7 +697,7 @@ class _ChatAppState extends State<ChatApp> {
                 ],
               ),
               Positioned(
-                left: 0,
+                left: isMobile ? 0 : 280,
                 right: 0,
                 bottom: 0,
                 child: Container(
@@ -817,6 +850,8 @@ class _ChatAppState extends State<ChatApp> {
                                   : const Icon(
                                       Icons
                                           .send_rounded,
+                                      color: Colors
+                                          .white,
                                     ),
                             ),
                           ),
@@ -844,5 +879,22 @@ class _ChatAppState extends State<ChatApp> {
         );
       },
     );
+  }
+
+  void _fetchModel() {
+    final url = Uri.parse('$apiUrl/api/model');
+    http
+        .get(url)
+        .then((response) {
+          if (response.statusCode == 200) {
+            final data = jsonDecode(
+              response.body,
+            );
+            setState(() {
+              _activeModel = data['model'];
+            });
+          }
+        })
+        .catchError((error) {});
   }
 }

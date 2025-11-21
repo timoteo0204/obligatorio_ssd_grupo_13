@@ -24,9 +24,7 @@ def get_embedding_model(model_name: str = "sentence-transformers/all-MiniLM-L6-v
         start_time = time.time()
         
         embeddings = HuggingFaceEmbeddings(
-            model_name=model_name,
-            model_kwargs={'device': 'cpu'},  
-            encode_kwargs={'normalize_embeddings': True}
+            model_name=model_name
         )
         
         load_time = time.time() - start_time

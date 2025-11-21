@@ -15,7 +15,7 @@ from app.api import health, chat, admin, chats
 
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format='%(name)s - %(levelname)s - %(message)s',
     stream=sys.stdout
 )
 
@@ -32,7 +32,6 @@ async def lifespan(app: FastAPI):
     logger.info(f"Configuración: {settings.dict()}")
     
     try:
-        # Inicializar MongoDB
         logger.info("Conectando a MongoDB")
         mongo_client = AsyncIOMotorClient(settings.mongo_uri)
         db_name = getattr(settings, "mongo_db_name", None) or "retail360"
@@ -46,7 +45,6 @@ async def lifespan(app: FastAPI):
         app_state['db'] = db
         await db.chats.create_index("user_id")
         
-        # Cargar Excel
         logger.info(f"Cargando Excel desde {settings.excel_path}")
         loader = ExcelLoader(settings.excel_path)
         dataframes = loader.load()
@@ -80,6 +78,7 @@ async def lifespan(app: FastAPI):
         app_state['retriever'] = retriever
         app_state['ollama_base_url'] = settings.ollama_base_url
         app_state['settings'] = settings
+        app_state['ollama_model'] = settings.ollama_model
         
         logger.info("Aplicación iniciada correctamente")
         

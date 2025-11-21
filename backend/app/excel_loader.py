@@ -1,6 +1,8 @@
 import pandas as pd
 from datetime import datetime
 from typing import Dict, Any
+from langchain_core.documents import Document
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -14,86 +16,18 @@ class ExcelLoader:
         self.productos_df = None
         self.ventas_completas_df = None
         
-    def load(self) -> Dict[str, pd.DataFrame]:
-        """
-        Carga y procesa el archivo Excel con las hojas de ventas, clientes y productos.
-        
-        Estructura esperada:
-        - Productos: IdProducto, NombreProducto, Categoria, Precio
-        - Clientes: IdCliente, NombreCliente, Ciudad
-        - Ventas: IdVenta, IdProducto, IdCliente, Cantidad, FechaVenta
-        """
-        import time
-        
-        logger.info(f"Starting Excel loading from: {self.excel_path}")
-        start_time = time.time()
-        
-        try:
-            # Cargar las hojas
-            excel_file = pd.ExcelFile(self.excel_path)
-            
-            # Identificar hojas disponibles
-            logger.info(f"Available sheets: {excel_file.sheet_names}")
-            
-            # Cargar hojas (buscar nombres en español e inglés)
-            # Productos
-            if 'Productos' in excel_file.sheet_names:
-                self.productos_df = pd.read_excel(excel_file, 'Productos')
-            elif 'productos' in excel_file.sheet_names:
-                self.productos_df = pd.read_excel(excel_file, 'productos')
-            elif 'Products' in excel_file.sheet_names:
-                self.productos_df = pd.read_excel(excel_file, 'Products')
-            else:
-                logger.warning("No se encontró hoja de Productos")
-                self.productos_df = pd.DataFrame()
-            
-            # Clientes
-            if 'Clientes' in excel_file.sheet_names:
-                self.clientes_df = pd.read_excel(excel_file, 'Clientes')
-            elif 'clientes' in excel_file.sheet_names:
-                self.clientes_df = pd.read_excel(excel_file, 'clientes')
-            elif 'Customers' in excel_file.sheet_names:
-                self.clientes_df = pd.read_excel(excel_file, 'Customers')
-            else:
-                logger.warning("No se encontró hoja de Clientes")
-                self.clientes_df = pd.DataFrame()
-            
-            # Ventas
-            if 'Ventas' in excel_file.sheet_names:
-                self.ventas_df = pd.read_excel(excel_file, 'Ventas')
-            elif 'ventas' in excel_file.sheet_names:
-                self.ventas_df = pd.read_excel(excel_file, 'ventas')
-            elif 'Sales' in excel_file.sheet_names:
-                self.ventas_df = pd.read_excel(excel_file, 'Sales')
-            else:
-                # Intentar con la primera hoja si no se encuentra
-                logger.warning("No se encontró hoja de Ventas, usando primera hoja")
-                self.ventas_df = pd.read_excel(excel_file, 0)
-            
-            # Procesar dataframes
-            logger.info("Processing dataframes...")
-            self._process_productos()
-            self._process_clientes()
-            self._process_ventas()
-            
-            # Combinar las tablas mediante JOIN
-            logger.info("Joining tables...")
-            self._join_tables()
-            
-            total_time = time.time() - start_time
-            logger.info(f"Excel loading completed in {total_time:.2f}s: {len(self.ventas_df)} ventas, "
-                       f"{len(self.clientes_df)} clientes, {len(self.productos_df)} productos")
-            
-            return {
-                'ventas': self.ventas_df,
-                'clientes': self.clientes_df,
-                'productos': self.productos_df,
-                'ventas_completas': self.ventas_completas_df
-            }
-            
-        except Exception as e:
-            logger.error(f"Error al cargar Excel: {e}")
-            raise
+    def load(self):
+        xls = pd.ExcelFile(self.excel_path)
+        all_documents = []
+        for sheet_name in xls.sheet_names:
+            df = pd.read_excel(xls, sheet_name=sheet_name)
+            # Convert DataFrame to a list of dictionaries or text representations
+            # Exambple: Convert each row to a string
+            for index, row in df.iterrows():
+                content = ", ".join([f"{col}: {value}" for col, value in row.items()])
+                metadata = {"sheet_name": sheet_name, "row_index": index}
+                all_documents.append(Document(page_content=content, metadata=metadata))
+        return all_documents
     
     def _process_productos(self):
         """Procesa y normaliza el DataFrame de productos."""

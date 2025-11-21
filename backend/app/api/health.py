@@ -1,5 +1,5 @@
-from fastapi import APIRouter, HTTPException
-from app.models import HealthResponse
+from fastapi import APIRouter
+from app.models import HealthResponse, RunningModelResponse
 import httpx
 import logging
 
@@ -38,3 +38,17 @@ async def health_check():
     return HealthResponse(
         status="ok",
     )
+
+@router.get("/model", response_model=RunningModelResponse)
+async def health_check():
+    """Endpoint de health check."""
+    from app.main import app_state
+    
+    ollama_available = ""
+    
+    ollama_available = app_state.get('ollama_model', "")
+
+    return RunningModelResponse(
+        model=ollama_available,
+    )
+    

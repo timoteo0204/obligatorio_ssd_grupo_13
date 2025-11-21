@@ -29,6 +29,8 @@ class HealthResponse(BaseModel):
     vectorstore_loaded: bool = False
     ollama_available: bool = False
 
+class RunningModelResponse(BaseModel):
+    model: str
 
 class ChatCreateRequest(BaseModel):
     user_id: str
