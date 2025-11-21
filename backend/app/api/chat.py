@@ -25,7 +25,7 @@ async def chat(request: ChatRequest):
         )
     
     try:
-        result = query_rag(
+        result = await  query_rag(
             question=request.question,
             chain=app_state['chain'],
             retriever=app_state['retriever']
