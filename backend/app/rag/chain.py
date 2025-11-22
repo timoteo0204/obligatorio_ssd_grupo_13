@@ -5,6 +5,7 @@ from langchain_community.llms import Ollama
 from typing import Dict, Any, List, Optional
 import logging
 import asyncio
+from app.config import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -29,11 +30,15 @@ def get_rag_chain(vectorstore: FAISS, llm: Ollama):
     """
     Construye la chain RAG para recibir contexto explícito.
     """
+    settings = get_settings()
     logger.info("Building RAG chain...")
     
     logger.info("Creating retriever...")
-    retriever = vectorstore.as_retriever()
-    logger.info("Retriever created successfully")
+    retriever = vectorstore.as_retriever(
+        search_type=settings.retriever_search_type,
+        search_kwargs={"k": settings.retriever_k}
+    )
+    logger.info(f"Retriever created successfully - search_type: {settings.retriever_search_type}, k: {settings.retriever_k}")
     
     template = """Sos un asistente que responde sobre un dataset de ventas de Retail 360.
 

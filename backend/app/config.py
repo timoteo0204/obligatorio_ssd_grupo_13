@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     server_port: int = 8000
     vectorstore_path: str = "/data/vectorstore"
     mongo_uri: str = "mongodb://mongodb:27017/retail360"
+    retriever_search_type: str = "similarity"
+    retriever_k: int = 5
     
     class Config:
         env_file = ".env"

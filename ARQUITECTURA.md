@@ -192,19 +192,15 @@ Sistema de chatbot con arquitectura RAG (Retrieval-Augmented Generation) para co
 
 ## Limitaciones Actuales
 
-1. **Sin base de datos relacional**: Todo en memoria/archivos
-2. **Sin autenticación**: Acceso abierto
-3. **Sin historial persistente**: Conversaciones no se guardan
-4. **Single-user**: No multi-tenancy
-5. **Embeddings lentos**: Primera vez toma tiempo
+1. **Sin autenticación**: Acceso abierto
+2. **Single-user**: No multi-tenancy
+3. **Embeddings lentos**: Primera vez toma tiempo
 
 ## Mejoras Futuras
 
-1. Agregar PostgreSQL para persistencia
-2. Implementar autenticación (JWT)
-3. Guardar historial de conversaciones
-4. Cache de respuestas frecuentes
-5. Streaming de respuestas (SSE)
-6. Métricas y monitoring (Prometheus)
-7. Rate limiting
-8. Multi-idioma
+1. Implementar autenticación (JWT)
+2. Cache de respuestas frecuentes
+3. Streaming de respuestas (SSE)
+4. Métricas y monitoring (Prometheus)
+5. Rate limiting
+6. Multi-idioma
