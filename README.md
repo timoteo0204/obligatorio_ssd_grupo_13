@@ -66,42 +66,6 @@ docker exec -it retail360-ollama ollama pull llama3
 - **API Docs**: http://localhost:8000/docs
 - **Health Check**: http://localhost:8000/api/health
 
-## Endpoints de la API
-
-### GET /api/health
-Verifica el estado del sistema.
-
-### POST /api/chat (legacy)
-Consulta rápida sin persistencia de historial.
-
-### Chats Persistentes (MongoDB)
-
-1. POST /api/chats
-   Crea un nuevo chat.
-   Body: {"user_id": "u123", "first_message": "Opcional"}
-
-2. GET /api/chats?user_id=u123
-   Lista los chats del usuario.
-
-3. GET /api/chats/{chat_id}
-   Obtiene detalles y mensajes de un chat.
-
-4. POST /api/chats/{chat_id}/message
-   Envía pregunta y guarda respuesta.
-   Body: {"user_id": "u123", "question": "¿Cuántas ventas hubo en marzo de 2023?"}
-
-**Ejemplo Respuesta mensaje:**
-```json
-{
-  "answer": "En marzo de 2023 hubo 150 ventas...",
-  "sources": [
-    {"id": "...", "type": "mes_agregado", "metadata": {}}
-  ]
-}
-```
-
-### POST /api/rebuild-index
-Reconstruye el índice vectorial desde el Excel.
 
 ## Configuración
 
@@ -111,8 +75,11 @@ Variables de entorno en `docker-compose.yml`:
 - `OLLAMA_BASE_URL`: URL del servidor Ollama (default: `http://ollama:11434`)
 - `OLLAMA_MODEL`: Modelo LLM a usar (default: `llama3`)
 - `EMBEDDING_MODEL`: Modelo para embeddings (default: `llama3`)
+- `SERVER_PORT`: Puerto del servidor backend (default: `8000`)
 - `VECTORSTORE_PATH`: Ruta al vector store (default: `/data/vectorstore`)
 - `MONGO_URI`: URI de conexión MongoDB (default: `mongodb://mongodb:27017/retail360`)
+- `RETRIEVER_SEARCH_TYPE`: Tipo de búsqueda en el retriever (default: `similarity`)
+- `RETRIEVER_K`: Número de documentos a recuperar (default: `5`)
 
 ## Desarrollo Local
 
@@ -138,15 +105,6 @@ cd frontend
 flutter pub get
 flutter run -d chrome --dart-define=API_URL=http://localhost:8000
 ```
-
-## Ejemplos de Preguntas
-
-- "¿Cuántas ventas hubo en marzo de 2023?"
-- "¿Cuál fue el cliente que más compró?"
-- "¿Cuál es el producto más vendido?"
-- "¿Cuál fue el total de ventas en 2023?"
-- "¿Qué local tuvo más ventas?"
-
 
 ## Consideraciones sobre el vector store
 La primera vez, el sistema construye el índice vectorial. Esto puede tomar varios minutos dependiendo del tamaño del dataset. El índice se guarda en disco y se reutiliza en siguientes inicios.
