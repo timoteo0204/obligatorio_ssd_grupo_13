@@ -17,17 +17,126 @@ class ExcelLoader:
         self.ventas_completas_df = None
         
     def load(self):
+        """Carga el Excel con layout fijo y genera documentos enriquecidos.
+        Hojas esperadas: Productos, Clientes, Ventas.
+        Devuelve lista de Document listos para embedding.
+        """
         xls = pd.ExcelFile(self.excel_path)
-        all_documents = []
-        for sheet_name in xls.sheet_names:
-            df = pd.read_excel(xls, sheet_name=sheet_name)
-            # Convert DataFrame to a list of dictionaries or text representations
-            # Exambple: Convert each row to a string
-            for index, row in df.iterrows():
-                content = ", ".join([f"{col}: {value}" for col, value in row.items()])
-                metadata = {"sheet_name": sheet_name, "row_index": index}
-                all_documents.append(Document(page_content=content, metadata=metadata))
-        return all_documents
+
+        try:
+            self.productos_df = pd.read_excel(xls, "Productos")
+        except Exception as e:
+            logger.warning(f"No se pudo leer hoja Productos: {e}")
+            self.productos_df = pd.DataFrame()
+        try:
+            self.clientes_df = pd.read_excel(xls, "Clientes")
+        except Exception as e:
+            logger.warning(f"No se pudo leer hoja Clientes: {e}")
+            self.clientes_df = pd.DataFrame()
+        try:
+            self.ventas_df = pd.read_excel(xls, "Ventas")
+        except Exception as e:
+            logger.warning(f"No se pudo leer hoja Ventas: {e}")
+            self.ventas_df = pd.DataFrame()
+
+        self._process_productos()
+        self._process_clientes()
+        self._process_ventas()
+
+        self._join_tables()
+
+        documentos = []
+
+        # Productos
+        if self.productos_df is not None and not self.productos_df.empty:
+            for row in self.productos_df.to_dict(orient="records"):
+                contenido = (
+                    "[PRODUCTO]\n"
+                    f"IdProducto: {row.get('IdProducto')}\n"
+                    f"NombreProducto: {row.get('NombreProducto')}\n"
+                    f"Categoria: {row.get('Categoria')}\n"
+                    f"Precio: {row.get('Precio')}\n"
+                )
+                documentos.append(
+                    Document(
+                        page_content=contenido,
+                        metadata={"tipo": "producto", "id": row.get("IdProducto")}
+                    )
+                )
+
+        # Clientes
+        if self.clientes_df is not None and not self.clientes_df.empty:
+            for row in self.clientes_df.to_dict(orient="records"):
+                contenido = (
+                    "[CLIENTE]\n"
+                    f"IdCliente: {row.get('IdCliente')}\n"
+                    f"NombreCliente: {row.get('NombreCliente')}\n"
+                    f"Ciudad: {row.get('Ciudad')}\n"
+                )
+                documentos.append(
+                    Document(
+                        page_content=contenido,
+                        metadata={"tipo": "cliente", "id": row.get("IdCliente")}
+                    )
+                )
+
+        # Ventas completas 
+        if self.ventas_completas_df is not None and not self.ventas_completas_df.empty:
+            for row in self.ventas_completas_df.to_dict(orient="records"):
+                fecha = row.get("FechaVenta") or row.get("fecha")
+                if isinstance(fecha, datetime):
+                    fecha_str = fecha.strftime("%Y-%m-%d %H:%M:%S")
+                else:
+                    fecha_str = str(fecha)
+                contenido = (
+                    "[VENTA]\n"
+                    f"IdVenta: {row.get('IdVenta')}\n"
+                    f"IdProducto: {row.get('IdProducto') or row.get('IdProducto_producto')}\n"
+                    f"IdCliente: {row.get('IdCliente') or row.get('IdClient') or row.get('IdCliente_cliente')}\n"
+                    f"Producto: {row.get('NombreProducto')}\n"
+                    f"CategoriaProducto: {row.get('Categoria')}\n"
+                    f"Cliente: {row.get('NombreCliente')}\n"
+                    f"CiudadCliente: {row.get('Ciudad')}\n"
+                    f"Cantidad: {row.get('Cantidad')}\n"
+                    f"FechaVenta: {fecha_str}\n"
+                    f"Año: {row.get('año')}\n"
+                    f"Mes: {row.get('mes')}\n"
+                    f"Dia: {row.get('dia')}\n"
+                    f"Total: {row.get('Total')}\n"
+                )
+                documentos.append(
+                    Document(
+                        page_content=contenido,
+                        metadata={
+                            "tipo": "venta",
+                            "id": row.get("IdVenta"),
+                            "id_producto": row.get('IdProducto') or row.get('IdProducto_producto'),
+                            "id_cliente": row.get('IdCliente') or row.get('IdClient') or row.get('IdCliente_cliente')
+                        }
+                    )
+                )
+        else:
+            # Si no hay join usamos la tabla ventas cruda
+            if self.ventas_df is not None and not self.ventas_df.empty:
+                for row in self.ventas_df.to_dict(orient="records"):
+                    fecha = row.get("FechaVenta")
+                    contenido = (
+                        "[VENTA]\n"
+                        f"IdVenta: {row.get('IdVenta')}\n"
+                        f"IdProducto: {row.get('IdProducto')}\n"
+                        f"IdCliente: {row.get('IdCliente') or row.get('IdClient')}\n"
+                        f"Cantidad: {row.get('Cantidad')}\n"
+                        f"FechaVenta: {fecha}\n"
+                    )
+                    documentos.append(
+                        Document(
+                            page_content=contenido,
+                            metadata={"tipo": "venta", "id": row.get("IdVenta")}
+                        )
+                    )
+
+        logger.info(f"Generados {len(documentos)} documentos enriquecidos desde Excel")
+        return documentos
     
     def _process_productos(self):
         """Procesa y normaliza el DataFrame de productos."""
@@ -60,7 +169,7 @@ class ExcelLoader:
         
         logger.info(f"Columnas de Ventas: {list(self.ventas_df.columns)}")
         
-        # Convertir columnas de fecha (FechaVenta)
+        # Convertir columnas de fecha
         date_columns = [col for col in self.ventas_df.columns 
                        if 'fecha' in col.lower() or 'date' in col.lower()]
         for col in date_columns:
@@ -94,12 +203,10 @@ class ExcelLoader:
             self.ventas_completas_df = pd.DataFrame()
             return
         
-        # Copiar ventas
         result = self.ventas_df.copy()
         
         # JOIN con Clientes
         if self.clientes_df is not None and not self.clientes_df.empty:
-            # Identificar columnas de ID de cliente
             cliente_id_col_ventas = None
             cliente_id_col_clientes = None
             
@@ -125,7 +232,6 @@ class ExcelLoader:
         
         # JOIN con Productos
         if self.productos_df is not None and not self.productos_df.empty:
-            # Identificar columnas de ID de producto
             producto_id_col_ventas = None
             producto_id_col_productos = None
             
