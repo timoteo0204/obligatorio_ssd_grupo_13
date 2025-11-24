@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'dart:math';
-import 'dart:html' as html;
 
 void main() {
   runApp(const MyApp());
@@ -99,15 +98,17 @@ class ChatSummary {
 class _ChatAppState extends State<ChatApp> {
   final TextEditingController _controller =
       TextEditingController();
+  final FocusNode _inputFocusNode = FocusNode();
   final Map<String, List<Message>> _chatMessages =
       {};
   final List<ChatSummary> _chats = [];
   String _activeModel = "";
   String? _activeChatId;
   bool _loadingChats = false;
-  bool _sending = false;
+  final Map<String, bool> _sendingStates = {};
   final String _userId = 'user-fixed';
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final GlobalKey<ScaffoldState> _scaffoldKey =
+      GlobalKey<ScaffoldState>();
 
   String get apiUrl =>
       const String.fromEnvironment(
@@ -120,6 +121,13 @@ class _ChatAppState extends State<ChatApp> {
     super.initState();
     _fetchModel();
     _fetchChats();
+  }
+
+  @override
+  void dispose() {
+    _inputFocusNode.dispose();
+    _controller.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchChats() async {
@@ -237,18 +245,19 @@ class _ChatAppState extends State<ChatApp> {
     if (_controller.text.trim().isEmpty ||
         _activeChatId == null)
       return;
+    final chatId = _activeChatId!;
     final question = _controller.text.trim();
     _controller.clear();
     setState(() {
-      _chatMessages[_activeChatId!]!.add(
+      _chatMessages[chatId]!.add(
         Message(role: 'user', content: question),
       );
-      _sending = true;
+      _sendingStates[chatId] = true;
     });
     try {
       final resp = await http.post(
         Uri.parse(
-          '$apiUrl/api/chats/${_activeChatId}/message',
+          '$apiUrl/api/chats/$chatId/message',
         ),
         headers: {
           'Content-Type': 'application/json',
@@ -264,7 +273,7 @@ class _ChatAppState extends State<ChatApp> {
             ?.map((s) => Source.fromJson(s))
             .toList();
         setState(() {
-          _chatMessages[_activeChatId!]!.add(
+          _chatMessages[chatId]!.add(
             Message(
               role: 'assistant',
               content: data['answer'],
@@ -274,7 +283,7 @@ class _ChatAppState extends State<ChatApp> {
         });
       } else {
         setState(() {
-          _chatMessages[_activeChatId!]!.add(
+          _chatMessages[chatId]!.add(
             Message(
               role: 'assistant',
               content:
@@ -285,7 +294,7 @@ class _ChatAppState extends State<ChatApp> {
       }
     } catch (e) {
       setState(() {
-        _chatMessages[_activeChatId!]!.add(
+        _chatMessages[chatId]!.add(
           Message(
             role: 'assistant',
             content: 'Error: $e',
@@ -293,9 +302,11 @@ class _ChatAppState extends State<ChatApp> {
         );
       });
     } finally {
-      setState(() => _sending = false);
+      setState(
+        () => _sendingStates[chatId] = false,
+      );
     }
-    _updateChatTitleIfNeeded(_activeChatId!);
+    _updateChatTitleIfNeeded(chatId);
   }
 
   @override
@@ -483,7 +494,10 @@ class _ChatAppState extends State<ChatApp> {
                       icon: const Icon(
                         Icons.menu,
                       ),
-                      onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                      onPressed: () =>
+                          _scaffoldKey
+                              .currentState
+                              ?.openDrawer(),
                     ),
                   const SizedBox(width: 4),
                   const Text(
@@ -684,7 +698,8 @@ class _ChatAppState extends State<ChatApp> {
             ),
           ],
         );
-        return Scaffold(key: _scaffoldKey,
+        return Scaffold(
+          key: _scaffoldKey,
           drawer: isMobile
               ? Drawer(child: sidebar)
               : null,
@@ -734,70 +749,101 @@ class _ChatAppState extends State<ChatApp> {
                                         180,
                                   ),
                               child: Scrollbar(
-                                child: TextField(
-                                  controller:
-                                      _controller,
-                                  enabled:
-                                      !_sending &&
-                                      _activeChatId !=
-                                          null,
-                                  maxLines: null,
-                                  decoration: InputDecoration(
-                                    hintText:
-                                        _activeChatId ==
-                                            null
-                                        ? 'Crea un chat para comenzar'
-                                        : 'Escribe tu mensaje...',
-                                    filled: true,
-                                    fillColor:
-                                        const Color(
-                                          0xFF1A1A1A,
-                                        ),
-                                    contentPadding:
-                                        const EdgeInsets.symmetric(
-                                          vertical:
-                                              12,
-                                          horizontal:
+                                child: RawKeyboardListener(
+                                  focusNode:
+                                      _inputFocusNode,
+                                  onKey: (event) {
+                                    if (event
+                                        is RawKeyDownEvent) {
+                                      final isEnter =
+                                          event
+                                              .logicalKey ==
+                                          LogicalKeyboardKey
+                                              .enter;
+                                      final isShift =
+                                          event
+                                              .isShiftPressed;
+                                      if (isEnter &&
+                                          !isShift) {
+                                        if (!(_sendingStates[_activeChatId] ??
+                                                false) &&
+                                            _activeChatId !=
+                                                null) {
+                                          if (_controller
+                                              .text
+                                              .trim()
+                                              .isNotEmpty) {
+                                            _sendMessage();
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  child: TextField(
+                                    controller:
+                                        _controller,
+                                    enabled:
+                                        !(_sendingStates[_activeChatId] ??
+                                            false) &&
+                                        _activeChatId !=
+                                            null,
+                                    maxLines:
+                                        null,
+                                    decoration: InputDecoration(
+                                      hintText:
+                                          _activeChatId ==
+                                              null
+                                          ? 'Crea un chat para comenzar'
+                                          : 'Escribe tu mensaje...',
+                                      filled:
+                                          true,
+                                      fillColor:
+                                          const Color(
+                                            0xFF1A1A1A,
+                                          ),
+                                      contentPadding: const EdgeInsets.symmetric(
+                                        vertical:
+                                            12,
+                                        horizontal:
+                                            14,
+                                      ),
+                                      border: OutlineInputBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(
                                               14,
-                                        ),
-                                    border: OutlineInputBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(
-                                            14,
+                                            ),
+                                        borderSide: const BorderSide(
+                                          color: Color(
+                                            0xFF2A2A2A,
                                           ),
-                                      borderSide: const BorderSide(
-                                        color: Color(
-                                          0xFF2A2A2A,
                                         ),
                                       ),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(
-                                            14,
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(
+                                              14,
+                                            ),
+                                        borderSide: const BorderSide(
+                                          color: Color(
+                                            0xFF2A2A2A,
                                           ),
-                                      borderSide: const BorderSide(
-                                        color: Color(
-                                          0xFF2A2A2A,
                                         ),
                                       ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(
-                                            14,
-                                          ),
-                                      borderSide: BorderSide(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                        width:
-                                            1.4,
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(
+                                              14,
+                                            ),
+                                        borderSide: BorderSide(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                          width:
+                                              1.4,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                  onSubmitted: (_) =>
-                                      _sendMessage(),
                                 ),
                               ),
                             ),
@@ -810,7 +856,8 @@ class _ChatAppState extends State<ChatApp> {
                             width: 48,
                             child: ElevatedButton(
                               onPressed:
-                                  (!_sending &&
+                                  (!(_sendingStates[_activeChatId] ??
+                                          false) &&
                                       _activeChatId !=
                                           null)
                                   ? _sendMessage
@@ -832,7 +879,9 @@ class _ChatAppState extends State<ChatApp> {
                                       ),
                                 ),
                               ),
-                              child: _sending
+                              child:
+                                  (_sendingStates[_activeChatId] ??
+                                      false)
                                   ? const Padding(
                                       padding:
                                           EdgeInsets.all(
@@ -881,9 +930,9 @@ class _ChatAppState extends State<ChatApp> {
     );
   }
 
-  void _fetchModel() {
+  Future<void> _fetchModel() async {
     final url = Uri.parse('$apiUrl/api/model');
-    http
+    await http
         .get(url)
         .then((response) {
           if (response.statusCode == 200) {
