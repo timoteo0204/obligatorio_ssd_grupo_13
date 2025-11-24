@@ -103,8 +103,23 @@ async def query_rag(
         chain_time = time.time() - chain_start
         logger.info(f"Step 2 completed: LLM chain invoked in {chain_time:.2f}s")
 
+        logger.info("Extracting sources from retrieved documents...")
+        sources = []
+        for i, doc in enumerate(docs):
+            source = {
+                'id': str(doc.metadata.get('id', f'doc_{i}')),
+                'type': doc.metadata.get('tipo', 'unknown'),
+                'metadata': doc.metadata,
+                'content': doc.page_content[:200] 
+            }
+            sources.append(source)
+        logger.info(f"Extracted {len(sources)} sources")
+        if sources:
+            logger.info(f"Sample source: {sources[0]}")
+
         return {
             'answer': answer.strip(),
+            'sources': sources,
         }
 
     except Exception as e:

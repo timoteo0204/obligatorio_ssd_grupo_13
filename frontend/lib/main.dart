@@ -61,10 +61,12 @@ class Message {
   final String role;
   final String content;
   final List<Source>? sources;
+  bool sourcesExpanded;
   Message({
     required this.role,
     required this.content,
     this.sources,
+    this.sourcesExpanded = false,
   });
 }
 
@@ -72,10 +74,12 @@ class Source {
   final String? id;
   final String? type;
   final Map<String, dynamic> metadata;
+  final String? content;
   Source({
     this.id,
     this.type,
     required this.metadata,
+    this.content,
   });
   factory Source.fromJson(
     Map<String, dynamic> json,
@@ -83,6 +87,7 @@ class Source {
     id: json['id'],
     type: json['type'],
     metadata: json['metadata'] ?? {},
+    content: json['content'],
   );
 }
 
@@ -170,12 +175,19 @@ class _ChatAppState extends State<ChatApp> {
       if (resp.statusCode == 200) {
         final data = jsonDecode(resp.body);
         final msgs = (data['messages'] as List)
-            .map(
-              (m) => Message(
+            .map((m) {
+              final sources =
+                  (m['sources'] as List?)
+                      ?.map(
+                        (s) => Source.fromJson(s),
+                      )
+                      .toList();
+              return Message(
                 role: m['role'],
                 content: m['content'],
-              ),
-            )
+                sources: sources,
+              );
+            })
             .toList();
         setState(
           () => _chatMessages[chatId] = msgs,
@@ -631,30 +643,175 @@ class _ChatAppState extends State<ChatApp> {
                                               .isNotEmpty) ...[
                                         const SizedBox(
                                           height:
-                                              8,
+                                              12,
                                         ),
-                                        const Text(
-                                          'Fuentes:',
-                                          style: TextStyle(
-                                            fontWeight:
-                                                FontWeight.bold,
-                                            fontSize:
-                                                12,
+                                        const Divider(
+                                          color: Color(
+                                            0xFF2A2A2A,
                                           ),
+                                          height:
+                                              1,
                                         ),
-                                        ...m.sources!.map(
-                                          (
-                                            s,
-                                          ) => Text(
-                                            '• ${s.type ?? 'N/A'}: ${s.id ?? 'N/A'}',
-                                            style: const TextStyle(
-                                              fontSize:
-                                                  12,
-                                              fontStyle:
-                                                  FontStyle.italic,
+                                        const SizedBox(
+                                          height:
+                                              12,
+                                        ),
+                                        InkWell(
+                                          onTap: () {
+                                            setState(
+                                              () {
+                                                m.sourcesExpanded = !m.sourcesExpanded;
+                                              },
+                                            );
+                                          },
+                                          borderRadius:
+                                              BorderRadius.circular(
+                                                8,
+                                              ),
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical:
+                                                  4,
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.source,
+                                                  size: 14,
+                                                  color: Theme.of(
+                                                    context,
+                                                  ).colorScheme.primary,
+                                                ),
+                                                const SizedBox(
+                                                  width: 6,
+                                                ),
+                                                Text(
+                                                  'Fuentes utilizadas (${m.sources!.length})',
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 12,
+                                                    color: Color(
+                                                      0xFFB0B0B0,
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(
+                                                  width: 6,
+                                                ),
+                                                Icon(
+                                                  m.sourcesExpanded
+                                                      ? Icons.expand_less
+                                                      : Icons.expand_more,
+                                                  size: 16,
+                                                  color: Theme.of(
+                                                    context,
+                                                  ).colorScheme.primary,
+                                                ),
+                                              ],
                                             ),
                                           ),
                                         ),
+                                        if (m
+                                            .sourcesExpanded) ...[
+                                          const SizedBox(
+                                            height:
+                                                8,
+                                          ),
+                                          ...m.sources!.map(
+                                            (
+                                              s,
+                                            ) => Container(
+                                              margin: const EdgeInsets.only(
+                                                bottom: 8,
+                                              ),
+                                              padding: const EdgeInsets.all(
+                                                8,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: const Color(
+                                                  0xFF171717,
+                                                ),
+                                                borderRadius: BorderRadius.circular(
+                                                  8,
+                                                ),
+                                                border: Border.all(
+                                                  color: const Color(
+                                                    0xFF2A2A2A,
+                                                  ),
+                                                  width: 0.5,
+                                                ),
+                                              ),
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Row(
+                                                    children: [
+                                                      Container(
+                                                        padding: const EdgeInsets.symmetric(
+                                                          horizontal: 6,
+                                                          vertical: 2,
+                                                        ),
+                                                        decoration: BoxDecoration(
+                                                          color:
+                                                              Theme.of(
+                                                                context,
+                                                              ).colorScheme.primary.withOpacity(
+                                                                0.2,
+                                                              ),
+                                                          borderRadius: BorderRadius.circular(
+                                                            4,
+                                                          ),
+                                                        ),
+                                                        child: Text(
+                                                          s.type?.toUpperCase() ??
+                                                              'N/A',
+                                                          style: TextStyle(
+                                                            fontSize: 10,
+                                                            fontWeight: FontWeight.bold,
+                                                            color: Theme.of(
+                                                              context,
+                                                            ).colorScheme.primary,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(
+                                                        width: 6,
+                                                      ),
+                                                      Text(
+                                                        'ID: ${s.id ?? 'N/A'}',
+                                                        style: const TextStyle(
+                                                          fontSize: 11,
+                                                          color: Color(
+                                                            0xFF909090,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  if (s.content !=
+                                                          null &&
+                                                      s.content!.isNotEmpty) ...[
+                                                    const SizedBox(
+                                                      height: 6,
+                                                    ),
+                                                    Text(
+                                                      s.content!,
+                                                      style: const TextStyle(
+                                                        fontSize: 11,
+                                                        color: Color(
+                                                          0xFFA0A0A0,
+                                                        ),
+                                                        fontStyle: FontStyle.italic,
+                                                      ),
+                                                      maxLines: 3,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ],
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ],
                                       const SizedBox(
                                         height: 4,

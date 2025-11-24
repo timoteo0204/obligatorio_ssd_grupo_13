@@ -34,11 +34,12 @@ async def chat(request: ChatRequest):
         
         response = ChatResponse(
             answer=result['answer'],
+            sources=result.get('sources', [])
         )
         
         # Log total request time
         total_time = time.time() - start_time
-        logger.info(f"Chat request completed in {total_time:.2f}s")
+        logger.info(f"Chat request completed in {total_time:.2f}s with {len(response.sources)} sources")
         
         return response
         

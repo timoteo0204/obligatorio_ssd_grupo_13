@@ -7,6 +7,7 @@ class ChatMessage(BaseModel):
     role: Literal["user", "assistant"]
     content: str
     ts: Optional[datetime] = None
+    sources: Optional[List['Source']] = None
 
 
 class ChatRequest(BaseModel):
@@ -18,10 +19,12 @@ class Source(BaseModel):
     id: str | None = None
     type: str | None = None
     metadata: dict = {}
+    content: str | None = None
 
 
 class ChatResponse(BaseModel):
     answer: str
+    sources: List[Source] = []
 
 
 class HealthResponse(BaseModel):

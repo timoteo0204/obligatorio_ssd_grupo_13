@@ -96,7 +96,17 @@ async def add_message(chat_id: str, req: ChatMessageAddRequest):
         chain=app_state['chain'],
         retriever=app_state['retriever'],
     )
-    assistant_msg = ChatMessage(role="assistant", content=result['answer'], ts=datetime.utcnow()).dict()
+    logger.info(f"query_rag result keys: {result.keys()}")
+    logger.info(f"Sources returned: {len(result.get('sources', []))} sources")
+    if result.get('sources'):
+        logger.info(f"First source: {result['sources'][0]}")
+    
+    assistant_msg = ChatMessage(
+        role="assistant", 
+        content=result['answer'], 
+        ts=datetime.utcnow(),
+        sources=[Source(**s) for s in result.get('sources', [])]
+    ).dict()
     existing_messages = c.get("messages", [])
     is_first = len(existing_messages) == 0
     new_messages = existing_messages + [user_msg, assistant_msg]
@@ -105,4 +115,7 @@ async def add_message(chat_id: str, req: ChatMessageAddRequest):
         {"_id": c["_id"]},
         {"$set": {"messages": new_messages, "updated_at": datetime.utcnow(), "title": new_title}}
     )
-    return ChatResponse(answer=result['answer'])
+    
+    response = ChatResponse(answer=result['answer'], sources=result.get('sources', []))
+    logger.info(f"ChatResponse created with {len(response.sources)} sources")
+    return response
