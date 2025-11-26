@@ -59,7 +59,7 @@ Sistema de chatbot con arquitectura RAG (Retrieval-Augmented Generation) para co
 | RAG Framework | LangChain | 0.1+ | Orquestación RAG |
 | Vector Store | FAISS | 1.7+ | Búsqueda vectorial |
 | LLM Server | Ollama | latest | Modelos locales |
-| LLM Model | llama3 | latest | Generación de texto |
+| LLM Model | llama3.2:1b | latest | Generación de texto |
 | Data Processing | Pandas | 2.1+ | Procesamiento Excel |
 | Containerization | Docker | latest | Deployment |
 
