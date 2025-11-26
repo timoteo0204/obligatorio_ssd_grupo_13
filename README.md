@@ -57,7 +57,7 @@ Esto iniciará:
 En otra terminal, ejecuta:
 
 ```bash
-docker exec -it retail360-ollama ollama pull llama3
+docker exec -it retail360-ollama ollama pull llama3.2:1b
 ```
 
 ### 3. Acceder a la aplicación
